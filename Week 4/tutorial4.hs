@@ -133,11 +133,14 @@ reconstruct sep (x:xs) = x ++ sep ++ reconstruct sep xs
 
 prop_split :: Char -> String -> String -> Bool
 prop_split c sep str = reconstruct sep' (split sep' str) `sameString` str
-  where sep' = c : sep
+    where
+      sep' = c : sep
 
 -- 6.
 linksFromHTML :: HTML -> [Link]
-linksFromHTML = undefined
+linksFromHTML s = split "<a href=\"" cleaned
+    where
+      cleaned = dropUntil "<a href=\"" s
 
 testLinksFromHTML :: Bool
 testLinksFromHTML  =  linksFromHTML testHTML == testLinks
@@ -145,17 +148,26 @@ testLinksFromHTML  =  linksFromHTML testHTML == testLinks
 
 -- 7.
 takeEmails :: [Link] -> [Link]
-takeEmails = undefined
+takeEmails ls = filter p ls
+    where
+      p l = takeUntil ":" l `sameString` "mailto"
 
 
 -- 8.
 link2pair :: Link -> (Name, Email)
-link2pair = undefined
+link2pair l = (name, email)
+    where
+      name  = takeUntil "<" $ dropUntil ">" l
+      email = takeUntil "\"" $ dropUntil ":" l
 
 
 -- 9.
 emailsFromHTML :: HTML -> [(Name,Email)]
-emailsFromHTML = undefined
+emailsFromHTML html = nub pairs
+    where
+      pairs = map link2pair emails
+      emails = takeEmails $ linksFromHTML html
+      
 
 testEmailsFromHTML :: Bool
 testEmailsFromHTML  =  emailsFromHTML testHTML == testAddrBook
@@ -163,36 +175,57 @@ testEmailsFromHTML  =  emailsFromHTML testHTML == testAddrBook
 
 -- 10.
 findEmail :: Name -> [(Name, Email)] -> [(Name, Email)]
-findEmail = undefined
-
+findEmail n l = filter p l
+    where
+      p (name,email) = contains name n
 
 -- 11.
 emailsByNameFromHTML :: HTML -> Name -> [(Name,Email)]
-emailsByNameFromHTML = undefined
+emailsByNameFromHTML html n = findEmail n emails 
+    where emails = emailsFromHTML html
 
 
 -- Optional Material
 
 -- 13.
 hasInitials :: String -> Name -> Bool
-hasInitials = undefined
+hasInitials s n = f s (split " " n)
+  where
+    f :: String -> [String] -> Bool
+    f [] _ = True
+    f _ [] = True
+    f (x:xs) (name : names)
+      | x == head name = f xs names
+      | otherwise      = False
 
 -- 14.
 emailsByMatchFromHTML :: (Name -> Bool) -> HTML -> [(Name, Email)]
-emailsByMatchFromHTML = undefined
+emailsByMatchFromHTML p html = f p mails
+    where
+      mails = emailsFromHTML html
+      f :: (Name -> Bool) -> [(Name, Email)] -> [(Name, Email)]
+      f _ [] = []
+      f p (pair@(name,email):xs)
+          | p name    = pair : f p xs
+          | otherwise = f p xs 
 
 emailsByInitialsFromHTML :: String -> HTML -> [(Name, Email)]
-emailsByInitialsFromHTML = undefined
+emailsByInitialsFromHTML s html = emailsByMatchFromHTML p html
+    where
+      p = hasInitials s
 
 -- 15.
 
 -- If your criteria use parameters (like hasInitials), change the type signature.
 myCriteria :: Name -> Bool
-myCriteria = undefined
+myCriteria = (== "Irene")   
 
 emailsByMyCriteriaFromHTML :: HTML -> [(Name, Email)]
-emailsByMyCriteriaFromHTML = undefined
+emailsByMyCriteriaFromHTML = emailsByMatchFromHTML myCriteria
 
 -- 16.
 ppAddrBook :: [(Name, Email)] -> String
-ppAddrBook addr = unlines [ name ++ ": " ++ email | (name,email) <- addr ]
+ppAddrBook addr = concat [ aft name ++ ", " ++ pre name ++ "\t\t" ++ email ++ "\n" | (name,email) <- addr ]
+    where
+      aft name = last $ split " " name
+      pre name = head $ split " " name
