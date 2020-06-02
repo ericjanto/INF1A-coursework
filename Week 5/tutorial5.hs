@@ -6,6 +6,7 @@
 module Tutorial5 where
 
 import Data.Char
+import Data.List
 import Data.Ratio
 import Test.QuickCheck
 
@@ -157,26 +158,71 @@ type Matrix = [[Rational]]
 -- 5
 -- a.
 uniform :: [Int] -> Bool
-uniform = undefined
+uniform [] = True
+uniform (y:xs) = and [ y == x | x <- xs ]
+
+uniform' :: [Int] -> Bool
+uniform' [] = True
+uniform' (x:xs) = all (== x) xs
+
+uniform'' :: [Int] -> Bool
+uniform'' [] = True
+uniform'' (x:xs) = foldr (&&) True (map (== x) xs)
+
+prop_uniform :: [Int] -> Bool
+prop_uniform xs =
+  uniform xs == uniform' xs &&
+  uniform xs == uniform'' xs
+
+test_uniform = quickCheck prop_uniform
 
 -- b.
 valid :: Matrix -> Bool
-valid = undefined
+valid [] = False
+valid m@(x:xs) = uniform (map length m) && not (null x)
+
+test_valid =
+  valid [[],[],[]] == False &&
+  valid [[1],[2]]  == True &&
+  valid []         == False
 
 
 -- 6.
 matrixWidth :: Matrix -> Int
-matrixWidth m = undefined
+matrixWidth [] = error "Matrix not valid!"
+matrixWidth (x:xs) = length x 
 
 matrixHeight :: Matrix -> Int
-matrixHeight m = undefined
+matrixHeight [] = error "Matrix not valid!"
+matrixHeight m = length m
+
+sameDimension :: Matrix -> Matrix -> Bool
+sameDimension m1 m2 = matrixWidth m1  == matrixWidth m2 &&
+                      matrixHeight m1 == matrixHeight m2
 
 plusM :: Matrix -> Matrix -> Matrix
-plusM = undefined
+plusM m1 m2
+    | sameDimension m1 m2 = zipWith plusRow m1 m2
+    | otherwise           = error "Matrices are not suitable!"
+
+plusRow :: [Rational] -> [Rational] -> [Rational]
+plusRow xs ys = zipWith (+) xs ys
 
 -- 7.
+isMultSuitable :: Matrix -> Matrix -> Bool
+isMultSuitable m1 m2 = matrixWidth m1 == matrixHeight m2 &&
+                      matrixHeight m1 == matrixWidth m2
+
 timesM :: Matrix -> Matrix -> Matrix
-timesM = undefined
+timesM m1 m2
+    | isMultSuitable m1 m2 = [ [dot col row | col <- transpose m2 ] | row <- m1]
+    | otherwise            = error "Matrices are not suitable!"
+
+dot :: [Rational] -> [Rational] -> Rational
+dot xs ys = sum $ zipWith (*) xs ys
+
+test_timesM =
+    timesM [[1,2,3],[4,5,6]] [[7,8],[9,10],[11,12]] == [[58,64],[139,154]]
 
 -- 8.
 -- b.

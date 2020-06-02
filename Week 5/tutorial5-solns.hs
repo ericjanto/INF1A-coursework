@@ -188,6 +188,9 @@ timesM m1 m2 | ok        = [ [ dot row col | col <- transpose m2 ] | row <- m1 ]
   where dot xs ys = sum (zipWith (*) xs ys)
         ok        = matrixWidth m1 == matrixHeight m2
 
+test_timesM =
+    timesM [[1,2,3],[4,5,6]] [[7,8],[9,10],[11,12]] == [[58,64],[139,154]]
+
 -- 8
 -- b.
 zipWith' :: (a -> b -> c) -> [a] -> [b] -> [c]
