@@ -227,11 +227,11 @@ test_timesM =
 -- 8.
 -- b.
 zipWith' :: (a -> b -> c) -> [a] -> [b] -> [c]
-zipWith' f xs ys = undefined
+zipWith' f xs ys = [f x y | (x,y) <- zip xs ys]
 
 -- c.
 zipWith'' :: (a -> b -> c) -> [a] -> [b] -> [c]
-zipWith'' f xs ys = undefined
+zipWith'' f xs ys = map (uncurry f) $ zip xs ys
 
 -- -----------------------------------
 -- -----------------------------------
