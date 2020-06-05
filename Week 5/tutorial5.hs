@@ -242,47 +242,64 @@ zipWith'' f xs ys = map (uncurry f) $ zip xs ys
 
 -- Mapping functions
 mapMatrix :: (a -> b) -> [[a]] -> [[b]]
-mapMatrix f = undefined
+mapMatrix f = map (map f)
 
 zipMatrix :: (a -> b -> c) -> [[a]] -> [[b]] -> [[c]]
-zipMatrix f = undefined
+zipMatrix f = zipWith (zipWith f)
 
 -- All ways of deleting a single element from a list
 removes :: [a] -> [[a]]     
-removes = undefined
+removes []     = []
+removes (x:xs) = xs : map (x :) (removes xs)
 
 -- Produce a matrix of minors from a given matrix
 minors :: Matrix -> [[Matrix]]
-minors m = undefined
+minors m = map (map transpose . removes . transpose) (removes m)
 
 -- A matrix where element a_ij = (-1)^(i + j)
 signMatrix :: Int -> Int -> Matrix
-signMatrix w h = undefined
+signMatrix w h = cycleN h [evenRow, oddRow]
+  where evenRow     = cycleN w [1,-1]
+        oddRow      = cycleN w [-1,1]
+        cycleN n xs = take n (cycle xs)
         
 determinant :: Matrix -> Rational
-determinant = undefined
+determinant [[x]] = x
+determinant m = sum (zipWith (*) row (cycle [1,-1]))
+  where f x m = x * determinant m
+        row   = head (zipMatrix f m (minors m))
 
 cofactors :: Matrix -> Matrix
-cofactors m = undefined        
+cofactors m = zipMatrix (*) (mapMatrix determinant (minors m)) signs
+  where signs = signMatrix (matrixWidth m) (matrixHeight m)
+        
                 
 scaleMatrix :: Rational -> Matrix -> Matrix
-scaleMatrix k = undefined
+scaleMatrix k = mapMatrix (k *)
 
 inverse :: Matrix -> Matrix
-inverse m = undefined
+inverse m = scaleMatrix (1 / determinant m) (transpose (cofactors m))
 
 -- Tests
 identity :: Int -> Matrix
-identity n = undefined
+identity n = map f [0..n - 1]
+  where f m = take n (replicate m 0 ++ [1] ++ repeat 0)
 
 prop_inverse2 :: Rational -> Rational -> Rational 
                 -> Rational -> Property
-prop_inverse2 a b c d = undefined
-
+prop_inverse2 a b c d = determinant m /= 0 ==> 
+                       m `timesM` inverse m    == identity 2
+                       && inverse m `timesM` m == identity 2
+  where m = [[a,b],[c,d]]
+        
 type Triple a = (a,a,a)
         
 prop_inverse3 :: Triple Rational -> 
                  Triple Rational -> 
                  Triple Rational ->
                  Property
-prop_inverse3 r1 r2 r3 = undefined
+prop_inverse3 r1 r2 r3 = determinant m /= 0 ==> 
+                         m `timesM` inverse m    == identity 3
+                         && inverse m `timesM` m == identity 3
+  where m           = [row r1, row r2, row r3]
+        row (a,b,c) = [a,b,c] 
