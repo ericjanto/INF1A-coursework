@@ -2,6 +2,15 @@
 -- Functional Programming Tutorial 6
 --
 -- Week 6(21-25 Oct.)
+--
+-- Solutions
+--
+-- Remember: there are many possible solutions, and if your solution produces
+-- the right results, then it is (most likely) correct. However, if your code
+-- looks far more complicated than these sample solutions, then you're probably
+-- making things too difficult for yourself---try to keep it simple!
+
+module Tutorial6 where
 
 import Data.List (nub, delete, sortOn)
 --import Data.Sort(uniqueSort, sort)
@@ -22,6 +31,7 @@ import Test.QuickCheck( quickCheck,
 
 data Fruit = Apple String Bool
            | Orange String Int
+  deriving (Show, Eq)
 
 -- Some example Fruit
 apple, apple', orange :: Fruit
@@ -35,30 +45,28 @@ fruits = [Orange "Seville" 12,
           Apple "Braeburn" True,
           Orange "Sanguinello" 10]
 
--- This allows us to print out Fruit in the same way we print out a list, an Int or a Bool.
-instance Show Fruit where
-  show (Apple variety hasWorm)   = "Apple("  ++ variety ++ "," ++ show hasWorm  ++ ")"
-  show (Orange variety segments) = "Orange(" ++ variety ++ "," ++ show segments ++ ")"
-
 -- 1.
 isBloodOrange :: Fruit -> Bool
-isBloodOrange (Orange _ _ ) = True
-isBloodOrange _             = False
-
-test_isBloodOrange = isBloodOrange(Orange "Moro" 12) == True &&
-            isBloodOrange(Apple "Granny Smith" True) == False
+isBloodOrange (Orange "Tarocco" _) = True
+isBloodOrange (Orange "Moro" _) = True
+isBloodOrange (Orange "Sanguinello" _) = True
+isBloodOrange _ = False
 
 -- 2.
-bloodOrangeSegments :: [Fruit] -> Int
-bloodOrangeSegments fruits = sum [i | fruit@(Orange _ i) <- fruits, isBloodOrange fruit]
+segments :: Fruit -> Int
+segments(Orange _ n) = n
+segments(Apple _ _) = 0
 
-test_Segments = bloodOrangeSegments fruits == 22
+bloodOrangeSegments :: [Fruit] -> Int
+bloodOrangeSegments fl = sum [ segments f | f <- fl, isBloodOrange f ]
 
 -- 3.
-worms :: [Fruit] -> Int
-worms fruits = length [apple | apple@(Apple _ hasWorm) <- fruits, not $ isBloodOrange apple, hasWorm]
+isWormy :: Fruit -> Bool
+isWormy(Apple _ b) = b
+isWormy(Orange _ _) = False
 
-test_worms = worms fruits == 1
+worms :: [Fruit] -> Int
+worms fl = length [ True | f <- fl, isWormy f ]
 
 --------------------------------------------------
 --------------------------------------------------
@@ -68,25 +76,22 @@ test_worms = worms fruits == 1
 
 -- The datatype 'Wff' a
 data Wff a = V a
-            | T
-            | F
-            | Not (Wff a)
-            | Wff a :|: Wff a
-            | Wff a :&: Wff a
-            | Wff a :->: Wff a
-            | Wff a :<->: Wff a
-            deriving (Eq, Ord)
-
+           | T
+           | F
+           | Not (Wff a)
+           | Wff a :|: Wff a
+           | Wff a :&: Wff a
+           | Wff a :->: Wff a
+           | Wff a :<->: Wff a
+           deriving (Eq, Ord)
 infixr 3 :&:
 infixr 2 :|:
 infixr 1 :->:
 infixr 0 :<->:
 
- 
 data Atom = A|B|C|D|P|Q|R|S|W|X|Y|Z deriving (Eq, Show, Ord)
--- we will use these as propositional letters in examples         
+-- we will use these as propositional letters in examples
 type Env a = [(a, Bool)]
-
 lookUp :: Eq a => Env a -> a -> Bool
 lookUp v x = the [ b | (x', b) <- v, x == x' ]
     where the [z] = z
@@ -115,8 +120,8 @@ evaluate F = False
 evaluate (Not p)     = not (evaluate p)
 evaluate (p :&: q)   = evaluate p && evaluate q
 evaluate (p :|: q)   = evaluate p || evaluate q
-evaluate (p :<->: q)  = evaluate p == evaluate q
 evaluate (p :->: q)  = evaluate p <= evaluate q
+evaluate (p :<->: q) = evaluate p == evaluate q
 evaluate (V b)  = b
 
 -- evaluates a wff in a given environment
@@ -126,14 +131,14 @@ eval v wff = evaluate ( substitute (lookUp v) wff )
 -- list the atoms that occur in a wff - 
 --  NOTE: atoms in the result must be unique
 atoms :: Eq a => Wff a -> [a]
-atoms (V x)        =  [x]
+atoms (V x)       = [x]
 atoms (F)         = []
 atoms (T)         = []
 atoms (Not p)     = atoms p
 atoms (p :|: q)   = nub (atoms p ++ atoms q)
 atoms (p :&: q)   = nub (atoms p ++ atoms q)
 atoms (p :->: q)  = nub (atoms p ++ atoms q)
-atoms (p :<->: q)  = nub (atoms p ++ atoms q)
+atoms (p :<->: q) = nub (atoms p ++ atoms q)
 
 -- creates all possible truth assignments for a set of atoms
 envs :: [a] -> [Env a]
@@ -145,9 +150,8 @@ envs (x:xs)  =  [ (x,False):e | e <- envs xs ] ++
 satisfiable :: Eq a => Wff a -> Bool
 satisfiable p  =  or [ eval e p | e <- envs (atoms p) ]
 
--- models :: Eq a => Wff a -> [Env a]
--- models p = [ e | e <- envs (atoms p),  eval e p ]
-
+models :: Eq a => Wff a -> [Env a]
+models p = [ e | e <- envs (atoms p),  eval e p ]
 
 --------------------------------------------------
 --------------------------------------------------
@@ -156,42 +160,33 @@ satisfiable p  =  or [ eval e p | e <- envs (atoms p) ]
 --------------------------------------------------
 
 -- 4.
-wff1 = (V P :|: V Q) :&: (V P :&: V Q)
-wff2 = ((V P :&: (V Q :|: V R)) :&: (((Not $ V P) :|: (Not $ V Q)) :&: ((Not $ V P) :|: (Not $ V R))))
+wff1  =  (V P :|: V Q) :&: (V P :&: V Q)
+wff2  =  (V P :&: (V Q :|: V R)) :&: 
+       ((Not (V P) :|: Not (V Q)) :&: (Not (V P) :|: Not (V R)))
 
 -- 5. 
 tautology :: Eq a => Wff a -> Bool
-tautology wff = and [eval env wff | env <- envs']
-    where 
-      envs' = envs $ atoms wff
-
-test_tautology = tautology wff1 == False &&
-                 tautology wff2 == False &&
-                 tautology (Not wff1) == False &&
-                 tautology (Not wff2) == True
+tautology p  =  and [ eval e p | e <- envs (atoms p) ]
 
 prop_taut1 :: Wff Atom -> Bool
-prop_taut1 p = tautology p || satisfiable (Not p)
+prop_taut1 p  =  tautology p || satisfiable (Not p)
 
 prop_taut2 :: Wff Atom -> Bool
-prop_taut2 p = not (satisfiable p) || not (tautology (Not p))
+prop_taut2 p  =  not (satisfiable p) || not (tautology (Not p))
 
 prop_taut :: Wff Atom -> Bool
-prop_taut p  = prop_taut1 p && prop_taut2 p
+prop_taut p  =  tautology p == not (satisfiable (Not p))
 
 -- 6.
-wff3 = ((V P :->: V Q) :&: (V P :&: (Not $ V Q)))
-wff4 = ((V P :<->: V Q) :&: ((V P :&: (Not $ V Q)) :|: ((Not $ V P) :&: V Q)))
+wff3  =  (V P :->: V Q) :&: (V P :&: Not (V Q))
+wff4  =  (V P :<->: V Q) :&: ((V P :&: Not (V Q)) :|: (Not (V P) :&: V Q))
 
 -- 7.
 equivalent :: Eq a =>  Wff a -> Wff a -> Bool
-equivalent wff1 wff2 = and [(eval env wff1) == (eval env wff2) | env <- envs']
-      where 
-      envs' = envs (nub (atoms wff1 ++ atoms wff2))
-
-test_equiv = equivalent (V P :&: V Q) (Not (Not (V P) :|: Not (V Q))) == True &&
-             equivalent (V P) (V Q) == False &&
-             equivalent (V R :|: Not (V R)) (V Q :|: Not (V Q)) == True
+equivalent p q  =  and [eval e p == eval e q | e <- theEnvs]
+    where
+      theAtoms  =  nub (atoms p ++ atoms q)
+      theEnvs   =  envs theAtoms
 
 -- 8.
 subformulas :: Eq a => Wff a -> [Wff a]
@@ -202,19 +197,16 @@ subformulas (p :->: q)   = (p :->: q)  : nub (subformulas p ++ subformulas q)
 subformulas (p :<->: q)  = (p :<->: q) : nub (subformulas p ++ subformulas q)
 subformulas p            = [p]
 
-test_subformulas = map showWff (subformulas wff1) == ["(P | Q) & P & Q","P | Q","P","Q","P & Q"]
-
-
 -- 9.
-wff5 = ((V P :|: V Q) :&: ((Not $ V P) :&: (Not $ V Q)))
+wff5  =  (V P :|: V Q) :&: (Not (V P) :&: Not (V Q))
 
-wff6 = ((V P :->: V Q) :&: (V P :<->: V Q))
+wff6  =  (V P :->: V Q) :&: (V P :<->: V Q)
 
 equivalent' :: Eq a => Wff a -> Wff a -> Bool
-equivalent' wff1 wff2 = undefined
+equivalent' p q  =  tautology (p :<->: q)
 
-prop_equivalent :: Wff Atom -> Wff Atom -> Bool
-prop_equivalent a b = equivalent a b == equivalent' a b
+prop_equivalent ::  Wff Atom -> Wff Atom -> Bool
+prop_equivalent p q  =  equivalent p q == equivalent' p q
 
 --------------------------------------------------
 --------------------------------------------------
@@ -225,47 +217,94 @@ prop_equivalent a b = equivalent a b == equivalent' a b
 -- 10.
 -- check for negation normal form
 isNNF :: Wff a -> Bool
-isNNF = undefined
+isNNF (Not (V _))     = True
+isNNF (Not _)         = False
+isNNF (p :&: q)       = isNNF p && isNNF q
+isNNF (p :|: q)       = isNNF p && isNNF q
+isNNF (_ :->: _)      = False
+isNNF (_ :<->: _)     = False
+isNNF _               = True -- (V a), T, F
 
 -- 11.
 -- convert to negation normal form
 impElim :: Wff a -> Wff a
-impElim = undefined
+impElim (Not p)     = Not (impElim p)
+impElim (p :|: q)   = impElim p          :|: impElim q
+impElim (p :&: q)   = impElim p          :&: impElim q
+impElim (p :->: q)  = (Not (impElim p))  :|: impElim q
+impElim (p :<->: q) = impElim (p :->: q) :&: impElim (q :->: p)
+impElim  x          = x -- (V a), T, F
 
-toNNF :: Wff a -> Wff a
-toNNF = undefined
+toNNF' :: Wff a -> Wff a
+toNNF' (Not T)         = F
+toNNF' (Not F)         = T
+toNNF' (Not (Not p))   = toNNF' p
+toNNF' (Not (p :&: q)) = toNNF' (Not p) :|: toNNF' (Not q)
+toNNF' (Not (p :|: q)) = toNNF' (Not p) :&: toNNF' (Not q)
+toNNF' (p :&: q)       = toNNF' p :&: toNNF' q
+toNNF' (p :|: q)       = toNNF' p :|: toNNF' q
+toNNF'  p              = p -- (V a), (Not (V a)), T, F
+
+toNNF = toNNF' . impElim
 
 -- check if result of toNNF is in neg. normal form
 prop_NNF1 :: Wff Atom -> Bool
-prop_NNF1 f  =  isNNF (toNNF f)
+prop_NNF1 p  =  isNNF (toNNF p)
 
 -- check if result of toNNF is equivalent to its input
 prop_NNF2 :: Wff Atom -> Bool
-prop_NNF2 f  =  equivalent f (toNNF f)
+prop_NNF2 p  =  equivalent p (toNNF p)
 
 -- 12.
 -- check whether a formula is in conj. normal form
-isCNF :: Eq a => Wff a -> Bool
-isCNF = undefined
+isCNF ::  Eq a => Wff a -> Bool
+isCNF T          =  True
+isCNF F          =  True
+isCNF (p :&: q) | p == T || p == F || q == T || q == F = False
+                | otherwise = isCNF p && isCNF q
+isCNF p          =  isClause p
+    where 
+      isClause (p :|: q)  =  isClause p && isClause q
+      isClause p          =  isLiteral p
+          where
+            isLiteral (Not (V _))  =  True
+            isLiteral (V _)        =  True
+            isLiteral _            =  False
 
 -- 13.
 -- transform a list of lists into a (CNF) formula
 listsToCNF :: [[Wff a]] -> Wff a
-listsToCNF = undefined
+listsToCNF xss  |  null xss      =  T
+                |  any null xss  =  F
+                |  otherwise     =  (foldl1 (:&:) . map (foldl1 (:|:))) xss
 
 -- 14.
 -- transform a CNF formula into a list of lists
-listsFromCNF :: Eq a => Wff a -> [[Wff a]]
-listsFromCNF = undefined
+listsFromCNF ::  Eq a => Wff a -> [[Wff a]]
+listsFromCNF p  |  not (isCNF p)  =  error "listsFromCNF: formula is not in CNF"
+                |  otherwise      =  getClauses p
+                where
+                  getClauses (p :&: q)  =  getClauses p ++ getClauses q
+                  getClauses p          =  [getLiterals p]
+                  getLiterals (p :|: q) =  getLiterals p ++ getLiterals q
+                  getLiterals p         =  [p]
+
 
 -- 15.
 -- transform an arbitrary formula into a list of lists
-toCNFList :: Eq a => Wff a -> [[Wff a]]
-toCNFList = undefined
+toCNFList ::  Eq a => Wff a -> [[Wff a]]
+toCNFList p = cnf (toNNF p) 
+    where
+      cnf F              =  [[]]
+      cnf T              =  []
+      cnf (V n)        =  [[V n]]
+      cnf (Not (V n))  =  [[Not (V n)]]
+      cnf (p :&: q)      =  nub (cnf p ++ cnf q)
+      cnf (p :|: q)      =  [nub $ x ++ y | x <- cnf p, y <- cnf q]
 
 -- convert to conjunctive normal form
-toCNF :: Eq a => Wff a -> Wff a
-toCNF wff  =  listsToCNF (toCNFList wff)
+toCNF :: Eq a =>  Wff a -> Wff a
+toCNF p  =  listsToCNF (toCNFList p)
 
 -- check if result of toCNF is equivalent to its input
 prop_CNF :: Wff Atom -> Bool
@@ -396,6 +435,7 @@ fullTable = tables . filter nontrivial . sortOn (length.atoms) . subformulas
         nontrivial T            = False
         nontrivial F            = False
         nontrivial _            = True
+    
 
 -- For QuickCheck --------------------------------------------------------
  
@@ -403,7 +443,7 @@ instance Show a => Show (Wff a) where
   show  =  showWff
 
 instance Arbitrary Atom where
-  arbitrary = oneof $ map return [ A, B, C, D, W, X, Y, Z]
+  arbitrary = oneof $ map return [ A, B,  C, D, W, X, Y, Z]
 
 instance Arbitrary a => Arbitrary (Wff a) where
   arbitrary  =  sized wff
@@ -413,10 +453,10 @@ instance Arbitrary a => Arbitrary (Wff a) where
                                      , liftM Not subform
                                      , liftM2 (:|:) subform subform
                                      , liftM2 (:&:) subform subform
-                                   --  , liftM2 (:->:) subform subform
-                                   --  , liftM2 (:<->:)subform' subform'
+                                     , liftM2 (:->:) subform subform
+                                     , liftM2 (:<->:)subform' subform'
                                      ]
                where
-                 atom = Test.QuickCheck.arbitrary
+                 atom = arbitrary
                  subform  =  wff (n `div` 2)
                  subform' =  wff (n `div` 4)
