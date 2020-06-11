@@ -211,7 +211,7 @@ wff5 = ((V P :|: V Q) :&: ((Not $ V P) :&: (Not $ V Q)))
 wff6 = ((V P :->: V Q) :&: (V P :<->: V Q))
 
 equivalent' :: Eq a => Wff a -> Wff a -> Bool
-equivalent' wff1 wff2 = undefined
+equivalent' wff1 wff2 = tautology $ wff1 :<->: wff2
 
 prop_equivalent :: Wff Atom -> Wff Atom -> Bool
 prop_equivalent a b = equivalent a b == equivalent' a b
@@ -222,18 +222,48 @@ prop_equivalent a b = equivalent a b == equivalent' a b
 --------------------------------------------------
 --------------------------------------------------
 
--- 10.
--- check for negation normal form
+-- 10. check for negation normal form
 isNNF :: Wff a -> Bool
-isNNF = undefined
+isNNF (V x)       = True
+isNNF (Not(V x))  = True
+isNNF (F)         = True
+isNNF (T)         = True
+isNNF (Not p)     = False
+isNNF (p :|: q)   = isNNF p && isNNF q
+isNNF (p :&: q)   = isNNF p && isNNF q
+isNNF (p :->: q)  = False
+isNNF (p :<->: q) = False
+
+test_isNNF = isNNF (Not(V P :&: V Q))                  == False &&
+             isNNF ((Not $ V P) :|: (Not $ V Q))       == True  &&
+             isNNF (Not(V P :|: V Q))                  == False &&
+             isNNF ((Not $ V P) :|: V Q)               == True  &&
+             isNNF (V P :<->: V Q)                     == False &&
+             isNNF ((V P :->: V Q) :&: (V Q :->: V P)) == False &&
+             isNNF (Not (Not $ V P))                   == False &&
+             isNNF (V P)                               == True
 
 -- 11.
 -- convert to negation normal form
 impElim :: Wff a -> Wff a
-impElim = undefined
+impElim (Not(p :|: q))  = (Not p) :&: (Not q)
+impElim (p :->: q)      = (Not p) :|: q
+impElim (p :<->: q)     = (p :->: q) :&: (q :->: p)
+impElim (Not(Not(V x))) = V x
+impElim p               = p
 
-toNNF :: Wff a -> Wff a
-toNNF = undefined
+
+toNNF' :: Wff a -> Wff a
+toNNF' (Not T)         = F
+toNNF' (Not F)         = T
+toNNF' (Not (Not p))   = toNNF' p
+toNNF' (Not (p :&: q)) = toNNF' (Not p) :|: toNNF' (Not q)
+toNNF' (Not (p :|: q)) = toNNF' (Not p) :&: toNNF' (Not q)
+toNNF' (p :&: q)       = toNNF' p :&: toNNF' q
+toNNF' (p :|: q)       = toNNF' p :|: toNNF' q
+toNNF'  p              = p -- (V a), (Not (V a)), T, F
+
+toNNF = toNNF' . impElim
 
 -- check if result of toNNF is in neg. normal form
 prop_NNF1 :: Wff Atom -> Bool
