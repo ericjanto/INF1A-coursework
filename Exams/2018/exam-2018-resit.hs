@@ -167,5 +167,7 @@ exprPoly (Pl [])  = C 0
 exprPoly (Pl [x]) = exprTerm x :+: C 0
 exprPoly (Pl (x:xs)) = exprTerm x :+: exprPoly (Pl xs)
 
+-- exprPoly (Pl tms) = foldr (:+:) (C 0) (map exprTerm tms) <<- is much nicer
+
 test_exprPoly = exprPoly (Pl []) == C 0 &&
                 exprPoly poly0   == expr0
