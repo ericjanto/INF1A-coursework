@@ -70,7 +70,15 @@ test_pq = quickCheck prop_pq
 -- 2c
 
 r :: String -> Int
-r = undefined
+r = foldr maxPlus 0 . map digitToInt . filter isDigit
+    where
+      maxPlus x y | x > y = x
+                  | x < y = y
+      maxPlus x _ = x
+
+prop_pqr xs = p xs == q xs && q xs == r xs
+test_pqr = quickCheck prop_pqr
+-- passed Ö
 
 -- Question 3
 
@@ -117,12 +125,36 @@ instance Arbitrary Direction where
 -- 3a
 
 state :: Move -> State -> State
-state = undefined
+state (Go d) (pos, dir)
+    | dir == L = (pos - d,dir)
+    | dir == R = (pos + d,dir)
+state Turn (pos,dir)
+    | dir == L = (pos,R)
+    | dir == R = (pos,L)
+state Dance st = st
+
+test_state =  state (Go 3) (0,R) == (3,R) &&
+              state (Go 3) (0,L) == (-3,L) &&
+              state Turn (-2,L)  == (-2,R) &&
+              state Dance (4,R)  == (4,R)
+-- passed :vD
 
 -- 3b
 
 trace :: Command -> State -> [State]
-trace = undefined
+trace cmd st = f (reverse (getMoves cmd)) st
+    where
+      f [] _   = []
+      f (mv:mvs) st = state mv st : f mvs (state mv st)
+
+getMoves Nil = [Dance]
+getMoves (cmd :#: mv) = mv : getMoves cmd
+
+test_trace =  trace (Nil) (3,R) == [(3,R)] &&
+              trace (Nil :#: Go 3 :#: Turn :#: Go 4) (0,L) == [(0,L),(-3,L),(-3,R),(1,R)] &&
+              trace (Nil :#: Go 3 :#: Dance :#: Turn :#: Turn) (0,R) == [(0,R),(3,R),(3,R),(3,L),(3,R)] &&
+              trace (Nil :#: Go 3 :#: Turn :#: Go 2 :#: Go 1 :#: Turn :#: Go 4) (4,L) == [(4,L),(1,L),(1,R),(3,R),(4,R),(4,L),(0,L)]
+-- passed!!!!!!!!!
 
 -- 3c
 
