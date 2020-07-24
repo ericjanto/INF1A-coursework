@@ -159,4 +159,17 @@ test_trace =  trace (Nil) (3,R) == [(3,R)] &&
 -- 3c
 
 dancify :: Command -> Command
-dancify = remove
+dancify Nil = Nil
+dancify (cmd :#: Dance) = (dancify cmd) :#: Dance
+dancify (cmd :#: m) | containsPos (state m (last states)) states = (dancify cmd) :#: m :#: Dance
+                    | otherwise = (dancify cmd) :#: m
+    where
+      states = trace cmd (0,R)
+      containsPos :: State -> [State] -> Bool
+      containsPos (v,_) sts = elem v (map fst sts)
+
+test_dancify =  dancify Nil == Nil &&
+                dancify (Nil :#: Go 3 :#: Turn :#: Go 4) == Nil :#: Go 3 :#: Turn :#: Dance :#: Go 4 &&
+                dancify (Nil :#: Go 3 :#: Dance :#: Turn :#: Turn) == Nil :#: Go 3 :#: Dance :#: Turn :#: Dance :#: Turn :#: Dance &&
+                dancify (Nil :#: Go 3 :#: Turn :#: Go 2 :#: Go 1 :#: Turn :#: Go 4) == Nil :#: Go 3 :#: Turn :#: Dance :#: Go 2 :#: Go 1 :#: Dance :#: Turn :#: Dance :#: Go 4
+-- passed -.-

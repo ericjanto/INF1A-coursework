@@ -122,12 +122,17 @@ trace (Nil :#: Go 3 :#: Turn :#: Go 2 :#: Go 1 :#: Turn :#: Go 4) (4,L)
 -- 3c
 samepos :: State -> [State] -> Bool
 samepos (p,s) ss = p ‘elem‘ (map fst ss)
+
 dancify :: Command -> Command
 dancify Nil = Nil
 dancify (com :#: Dance) = (dancify com) :#: Dance
 dancify (com :#: m) | samepos (state m (last t)) t = (dancify com) :#: m :#: Dance
-| otherwise = (dancify com) :#: m
-where t = trace com (0,R)
+                    | otherwise = (dancify com) :#: m
+  where t = trace com (0,R)
+
+
+
+
 test3c =
 dancify Nil
 == Nil &&
