@@ -159,4 +159,4 @@ test_trace =  trace (Nil) (3,R) == [(3,R)] &&
 -- 3c
 
 dancify :: Command -> Command
-dancify = undefined
+dancify = remove
