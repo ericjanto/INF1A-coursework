@@ -14,7 +14,7 @@ import Data.Char
 -- 1a
 
 p :: [Int] -> Int
-p xs = undefined
+p xs = 1 + mod (div (sum [x | x <- xs, x > 0]) 60) 12
 
 test_p =  p [] == 1 &&
           p [-30,-20] == 1 &&
@@ -25,12 +25,28 @@ test_p =  p [] == 1 &&
 -- 1b
 
 q :: [Int] -> Int
-q = undefined
+q xs = 1 + mod (div (getSum xs) 60) 12
+    where
+      getSum [] = 0
+      getSum (x:xs) | x > 0     = x + getSum xs
+                    | otherwise = getSum xs
+
+test_q =  q [] == 1 &&
+          q [-30,-20] == 1 &&
+          q [20,-30,30,14,-20] == 2 &&
+          q [200,45] == 5 &&
+          q [60,-100,360,-20,240,59] == 12 &&
+          q [60,-100,360,-20,240,60] == 1
 
 -- 1c
 
 r :: [Int] -> Int
-r = undefined
+r = (+1) . (`mod` 12) . (`div` 60) . foldr (+) 0 . filter (>0)
+
+prop_pqr :: [Int] -> Bool
+prop_pqr xs = p xs == q xs && q xs == r xs
+
+test_pqr = quickCheck prop_pqr
 
 -- Question 2
 
