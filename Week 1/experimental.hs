@@ -15,3 +15,5 @@ sumSqOdds [] = 0
 sumSqOdds (x:xs)
     | odd x = x * x + sumSqOdds xs
     | otherwise = sumSqOdds xs
+
+test = undefined
