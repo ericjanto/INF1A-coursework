@@ -53,12 +53,35 @@ test_pqr = quickCheck prop_pqr
 -- 2a
 
 f :: String -> String
-f = undefined
+f [] = []
+f xs = [x | (x,y) <- zip xs $ tail xs, x /= y] ++ [last xs]
+
+test_f =  f "Tennessee" == "Tenese" &&
+          f "llama" == "lama" &&
+          f "oooh" == "oh" &&
+          f "none here" == "none here" &&
+          f "nNnor hEere" == "nNnor hEere" &&
+          f "A" == "A" &&
+          f "" == ""
 
 -- 2b
 
 g :: String -> String
-g = undefined
+g [] = []
+g [x] = [x]
+g (x:y:xs) | x /= y = x : g (y:xs)
+           | otherwise = g (y:xs)
+
+test_g =  g "Tennessee" == "Tenese" &&
+          g "llama" == "lama" &&
+          g "oooh" == "oh" &&
+          g "none here" == "none here" &&
+          g "nNnor hEere" == "nNnor hEere" &&
+          g "A" == "A" &&
+          g "" == ""
+
+prop_fg s = g s == f s
+test_fg = quickCheck prop_fg
                          
 -- Question 3
 
@@ -120,9 +143,13 @@ r6 = Seq (Seq Epsilon Epsilon)
 -- 3a
 
 language :: Regexp -> [String]
-language = undefined
+language (Epsilon) = [""]
+language (Lit a) = [[a]]
+language (Seq a b) = language a ++ language b
+language (Or a b) = language a ++ language b
 
 -- 3b
 
 simplify :: Regexp -> Regexp
-simplify = undefined
+simplify (Or a b) | a == a = (Lit a)
+-- :(
